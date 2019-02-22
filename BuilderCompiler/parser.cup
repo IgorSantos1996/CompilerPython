@@ -1,0 +1,253 @@
+/*[]-----------------------------------------------------------------[]*/
+/*|           					FIRESNAKE	                          |*/
+/*|*******************************************************************|*/
+/*|  Disciplina.......: Linguagens Formais e Tradutores      	      |*/
+/*|  Data........: 18/12/2018								          |*/
+/*|  @Aluno......: Jefferson  Santos  e Igor Terriaga                 |*/
+/*|  Info........: FireSnake é um compilador para o reconhecimento    |*/
+/*|   			   da linguagem Python. 							  |*/
+/*[]-----------------------------------------------------------------[]*/
+
+package cup.example;
+
+import java_cup.runtime.*;
+import cup.example.Lexer;
+import java.io.IOException;
+import java.io.File;
+import java.io.FileInputStream;
+
+parser code {:
+  protected Lexer lexer;
+	private Symbol s;
+	public void sintax_error(Symbol s){
+		this.s  = s;	
+	}
+	public Symbol getS (){
+		return this.s;
+	}
+
+
+:}
+
+/* define how to connect to the scanner! */
+init with {:
+  ComplexSymbolFactory f = new ComplexSymbolFactory();
+  symbolFactory = f;
+  File file = new File("input.txt");
+  FileInputStream fis = null;
+  try {
+    fis = new FileInputStream(file);
+  } catch (IOException e) {
+    e.printStackTrace();
+  } 
+  lexer = new Lexer(f,fis);
+:};
+scan with {: return lexer.next_token(); :};
+
+                    /********** TERMINALS OPERATORS AND DELIMITERS *********/
+terminal            SEMI, PLUS, MINUS, UMINUS, TIMES,DIVISION, EQUAL;
+
+terminal 			EQUALTWO,NOTSAME,BIGGER,SMALLER,GREATEREQUAL,LESSEQUAL;
+
+terminal			LPAREN,RPAREN,L_BRACKET,R_BRACKET,L_KEY,R_KEY;
+
+terminal            COLON_OP,COMMA,SCORE,SEMICOLON;
+
+
+                    /********** RESERVED WORDS  *********/
+terminal            FALSE,TRUE,RETURN,DEF,FOR,WHILE,GLOBAL, NOT,ELIF,IF,ELSE, IN, RANGE, IDENT, DEDENT,OR,AND;
+
+                    /********** ANOTHER WORDS  *********/
+terminal Integer    INTEGER_LITERAL;  
+terminal Float      NUMBERFLOAT_LITERAL;
+terminal            IDENTIFIER,RESERVED_WORDS;
+terminal            COMENTARIOS, COMENTARIO;
+
+       			/* ********** STRINGS ********* */
+
+terminal            STRING;
+     
+					 /********** NO TERMINAIS  *********/
+non terminal            expr_list, number_aux,fim,fun_stmt;
+non terminal            expr,exprS,bool_posible,list_params_logicos,comando,expr1,block_stm,stms;      // used to store evaluated subexpressions
+non terminal            atrib,while,if,for,arith_op,logic_op,func_def,list_params,list_params_a;
+non terminal            T,F,O,K,P,operadores_logicos,precedence_logic,list_argumentos,par_expr,def_funcao_stmt,aux_vetor;
+non terminal            else_stmt,elif_stmt,vetor,equilibrio_pcc,while_expr,expr2,if_expr,for_expr,R,for_stmt,range_stmt,range_values,bracket_expr;
+
+
+
+					 /********** PRECEDENCES  *********/
+//precedence left PLUS, MINUS;
+//precedence left TIMES, DIVISION;
+
+					 /********** GENERATION GRAMMAR MODEL  *********/     
+             
+         						/*Nossa Gramática para o Python*/    
+         						//Expression Statement
+
+start with comando;
+
+comando  ::= IDENTIFIER atrib expr
+		|
+		 while_expr
+		|
+		 if_expr
+		|
+		expr arith_op 
+		|
+		expr logic_op 
+		|
+		expr fun_stmt 
+		|
+		expr vetor
+		;
+expr ::= expr AND expr1
+		|
+		expr1
+		;
+expr1 ::= expr1 OR expr2
+		|
+		expr2
+		;
+atrib   ::= IDENTIFIER EQUAL expr
+		;
+block_stm ::= IDENT stms DEDENT
+		; 
+stms ::= comando
+		|
+		comando stms
+		;
+fun_stmt        ::= DEF IDENTIFIER LPAREN list_params RPAREN COLON_OP IDENT block_stm DEDENT
+					|
+					DEF IDENTIFIER LPAREN RPAREN COLON_OP IDENT block_stm DEDENT
+					|
+					error {:System.err.println(" Erro na definição da função \n");:}
+					;
+
+list_params ::= IDENTIFIER  list_params_a
+				|
+				IDENTIFIER
+				;
+list_params_a ::=  COMMA IDENTIFIER list_params_a				
+				;
+					
+number_aux ::=  INTEGER_LITERAL
+				|
+				NUMBERFLOAT_LITERAL
+				;
+arith_op ::=  arith_op PLUS T
+				|
+			  arith_op MINUS T
+			  	|
+			  	T
+				;
+T        ::=   T TIMES F
+			   |
+			   T DIVISION F
+			   |
+			   F
+			   ;
+F        ::=  number_aux
+				|
+			  IDENTIFIER
+				;
+				
+						
+logic_op ::=  	arith_op  precedence_logic arith_op list_params_logicos
+				;
+list_params_logicos ::= precedence_logic arith_op list_params_logicos
+				;
+bool_posible ::= TRUE
+				|
+				FALSE
+				;
+
+precedence_logic ::= precedence_logic OR O
+					|
+					precedence_logic AND O
+					|
+					O
+					;
+O                ::= O NOT K
+					|
+					K
+					;
+K                ::= K SMALLER P
+					|
+					K LESSEQUAL P
+					|
+					K BIGGER P
+					|
+					K GREATEREQUAL P
+					|
+					K NOTSAME P
+					|
+					K EQUALTWO P
+					|
+					F
+					;
+					
+
+equilibrio_pcc ::= LPAREN equilibrio_pcc LPAREN
+				|
+				L_BRACKET equilibrio_pcc R_BRACKET
+				|
+				L_KEY equilibrio_pcc R_KEY
+				|
+				LPAREN RPAREN
+				|
+				L_BRACKET R_BRACKET
+				|
+				L_KEY R_KEY	
+				;
+bracket_expr ::= L_BRACKET list_argumentos R_BRACKET
+				|
+				par_expr
+				;
+par_expr     ::= LPAREN list_argumentos RPAREN
+				|
+				range_values
+				;
+list_argumentos ::= list_argumentos COMMA expr
+					|
+					expr
+				    ;
+for_stmt      ::= FOR IDENTIFIER IN range_stmt COLON_OP IDENT expr DEDENT
+				|
+				FOR IDENTIFIER IN bracket_expr COLON_OP IDENT expr DEDENT
+				;
+range_stmt    ::= RANGE LPAREN range_values RPAREN
+				|
+				RANGE LPAREN range_values COMMA range_values RPAREN
+				|
+				RANGE LPAREN range_values COMMA range_values COMMA range_values RPAREN
+				;
+range_values  ::= IDENTIFIER
+				|
+				INTEGER_LITERAL
+				|
+				NUMBERFLOAT_LITERAL
+				;
+while_expr    ::= WHILE expr COLON_OP IDENT  block_stm DEDENT
+				;
+if_expr       ::= IF LPAREN expr RPAREN SCORE  block_stm 
+				|
+				IF LPAREN expr RPAREN SCORE elif_stmt
+				|
+				IF LPAREN expr RPAREN IDENT comando else_stmt expr DEDENT 
+				;
+else_stmt     ::= ELSE  block_stm
+				;
+elif_stmt     ::= ELIF RPAREN  block_stm LPAREN 
+				;
+
+aux_vetor ::= aux_vetor COMMA number_aux
+			|
+			aux_vetor COMMA STRING
+			;
+vetor ::= IDENTIFIER EQUAL L_BRACKET R_BRACKET
+		|
+		IDENTIFIER EQUAL L_BRACKET aux_vetor R_BRACKET
+		;
+		
+		
