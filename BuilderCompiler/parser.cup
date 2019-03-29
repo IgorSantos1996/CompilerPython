@@ -58,8 +58,8 @@ terminal            COLON_OP,COMMA,SCORE,SEMICOLON;
 terminal            FALSE,TRUE,RETURN,DEF,FOR,WHILE,GLOBAL, NOT,ELIF,IF,ELSE, IN, RANGE, IDENT, DEDENT,OR,AND;
 
                     /********** ANOTHER WORDS  *********/
-terminal Integer    INTEGER_LITERAL;  
-terminal Float      NUMBERFLOAT_LITERAL;
+terminal            INTEGER_LITERAL;  
+terminal            NUMBERFLOAT_LITERAL;
 terminal            IDENTIFIER,RESERVED_WORDS;
 terminal            COMENTARIOS, COMENTARIO;
 
@@ -71,8 +71,8 @@ terminal            STRING;
 non terminal            expr_list, number_aux,fim,fun_stmt;
 non terminal            expr,exprS,bool_posible,list_params_logicos,comando,expr1,block_stm,stms;      // used to store evaluated subexpressions
 non terminal            atrib,while,if,for,arith_op,logic_op,func_def,list_params,list_params_a;
-non terminal            T,F,O,K,P,operadores_logicos,precedence_logic,list_argumentos,par_expr,def_funcao_stmt,aux_vetor;
-non terminal            else_stmt,elif_stmt,vetor,equilibrio_pcc,while_expr,expr2,if_expr,for_expr,R,for_stmt,range_stmt,range_values,bracket_expr;
+non terminal            Y,T,F,O,K,P,operadores_logicos,precedence_logic,list_argumentos,par_expr,def_funcao_stmt,aux_vetor;
+non terminal            Comandos,return_stmt, else_stmt,elif_stmt,vetor,equilibrio_parenteses,while_expr,expr2,if_expr,for_expr,R,for_stmt,range_stmt,range_values,bracket_expr;
 
 
 
@@ -87,39 +87,32 @@ non terminal            else_stmt,elif_stmt,vetor,equilibrio_pcc,while_expr,expr
 
 start with comando;
 
-comando  ::= IDENTIFIER atrib expr
+comando  ::=  atrib
 		|
 		 while_expr
 		|
 		 if_expr
 		|
-		expr arith_op 
+		 fun_stmt 
 		|
-		expr logic_op 
-		|
-		expr fun_stmt 
-		|
-		expr vetor
+		 vetor
 		;
-expr ::= expr AND expr1
+Comandos ::= comando
 		|
-		expr1
+		Comandos comando
 		;
-expr1 ::= expr1 OR expr2
-		|
-		expr2
+expr ::= logic_op
 		;
+		
+return_stmt ::= RETURN expr
+		;
+		
 atrib   ::= IDENTIFIER EQUAL expr
 		;
-block_stm ::= IDENT stms DEDENT
-		; 
-stms ::= comando
-		|
-		comando stms
-		;
-fun_stmt        ::= DEF IDENTIFIER LPAREN list_params RPAREN COLON_OP IDENT block_stm DEDENT
+
+fun_stmt        ::= DEF IDENTIFIER LPAREN list_params RPAREN COLON_OP IDENT comando DEDENT
 					|
-					DEF IDENTIFIER LPAREN RPAREN COLON_OP IDENT block_stm DEDENT
+					DEF IDENTIFIER LPAREN RPAREN COLON_OP comando
 					|
 					error {:System.err.println(" Erro na definição da função \n");:}
 					;
@@ -145,17 +138,18 @@ T        ::=   T TIMES F
 			   |
 			   T DIVISION F
 			   |
-			   F
+			   Y
 			   ;
-F        ::=  number_aux
+Y ::= 			number_aux
 				|
-			  IDENTIFIER
+				IDENTIFIER
+				|
+				bool_posible
+				|
+				STRING
 				;
-				
-						
-logic_op ::=  	arith_op  precedence_logic arith_op list_params_logicos
-				;
-list_params_logicos ::= precedence_logic arith_op list_params_logicos
+	 	 
+logic_op ::=  	 arith_op  precedence_logic arith_op 
 				;
 bool_posible ::= TRUE
 				|
@@ -172,34 +166,22 @@ O                ::= O NOT K
 					|
 					K
 					;
-K                ::= K SMALLER P
+K                ::= K SMALLER arith_op
 					|
-					K LESSEQUAL P
+					K LESSEQUAL arith_op
 					|
-					K BIGGER P
+					K BIGGER arith_op
 					|
-					K GREATEREQUAL P
+					K GREATEREQUAL arith_op
 					|
-					K NOTSAME P
+					K NOTSAME arith_op
 					|
-					K EQUALTWO P
+					K EQUALTWO arith_op
 					|
-					F
+					arith_op
 					;
-					
 
-equilibrio_pcc ::= LPAREN equilibrio_pcc LPAREN
-				|
-				L_BRACKET equilibrio_pcc R_BRACKET
-				|
-				L_KEY equilibrio_pcc R_KEY
-				|
-				LPAREN RPAREN
-				|
-				L_BRACKET R_BRACKET
-				|
-				L_KEY R_KEY	
-				;
+
 bracket_expr ::= L_BRACKET list_argumentos R_BRACKET
 				|
 				par_expr
@@ -208,13 +190,14 @@ par_expr     ::= LPAREN list_argumentos RPAREN
 				|
 				range_values
 				;
-list_argumentos ::= list_argumentos COMMA expr
+/*list_argumentos ::= list_argumentos COMMA expr
 					|
 					expr
-				    ;
-for_stmt      ::= FOR IDENTIFIER IN range_stmt COLON_OP IDENT expr DEDENT
+				    ;*/
+
+for_stmt      ::= FOR IDENTIFIER IN range_stmt COLON_OP IDENT Comandos DEDENT
 				|
-				FOR IDENTIFIER IN bracket_expr COLON_OP IDENT expr DEDENT
+				FOR IDENTIFIER IN bracket_expr COLON_OP IDENT Comandos DEDENT
 				;
 range_stmt    ::= RANGE LPAREN range_values RPAREN
 				|
@@ -225,29 +208,27 @@ range_stmt    ::= RANGE LPAREN range_values RPAREN
 range_values  ::= IDENTIFIER
 				|
 				INTEGER_LITERAL
+				
+				;
+while_expr    ::= WHILE logic_op COLON_OP IDENT Comandos DEDENT
+				;
+if_expr       ::= IF  logic_op  COLON_OP  IDENT Comandos DEDENT 
 				|
-				NUMBERFLOAT_LITERAL
-				;
-while_expr    ::= WHILE expr COLON_OP IDENT  block_stm DEDENT
-				;
-if_expr       ::= IF LPAREN expr RPAREN SCORE  block_stm 
+				IF  logic_op  COLON_OP IDENT elif_stmt DEDENT
 				|
-				IF LPAREN expr RPAREN SCORE elif_stmt
-				|
-				IF LPAREN expr RPAREN IDENT comando else_stmt expr DEDENT 
+				IF  logic_op  COLON_OP IDENT Comandos else_stmt logic_op DEDENT 
 				;
-else_stmt     ::= ELSE  block_stm
+else_stmt     ::= ELSE  IDENT Comandos DEDENT 
 				;
-elif_stmt     ::= ELIF RPAREN  block_stm LPAREN 
+elif_stmt     ::= ELIF  logic_op IDENT Comandos DEDENT
 				;
 
-aux_vetor ::= aux_vetor COMMA number_aux
+aux_vetor ::= aux_vetor COMMA INTEGER_LITERAL
 			|
 			aux_vetor COMMA STRING
 			;
+
 vetor ::= IDENTIFIER EQUAL L_BRACKET R_BRACKET
 		|
 		IDENTIFIER EQUAL L_BRACKET aux_vetor R_BRACKET
 		;
-		
-		
