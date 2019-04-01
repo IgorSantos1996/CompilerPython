@@ -22,7 +22,7 @@ import java_cup.runtime.*;
 		}*/
 		
 		// SINTÁTICO
-		parser parser = new parser(lex);
+		Parser parser = new Parser(lex);
 		try {
 			
 			parser.debug_parse();	

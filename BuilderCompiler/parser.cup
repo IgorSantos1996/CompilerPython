@@ -87,102 +87,102 @@ non terminal            Comandos,return_stmt, else_stmt,elif_stmt,vetor,equilibr
 
 start with comando;
 
-comando  ::=  atrib
+comando  ::=  atrib:a1 
 		|
-		 while_expr
+		 while_expr:w1
 		|
-		 if_expr
+		 if_expr:i1
 		|
-		 fun_stmt 
+		 fun_stmt:f1
 		|
-		 vetor
+		 vetor:v1
 		;
-Comandos ::= comando
+Comandos ::= comando:cmd{:new CompoundComando(null, cmd);:}
 		|
-		Comandos comando
+		Comandos:cmds comando:cmd{:new CompoundComando(cmds, cmd);:}
 		;
-expr ::= logic_op
-		;
-		
-return_stmt ::= RETURN expr
+expr ::= logic_op:lp{:RESULT = new OperacaoLogica(lp);:}
 		;
 		
-atrib   ::= IDENTIFIER EQUAL expr
+/*return_stmt ::= RETURN expr:e1
+		;
+*/		
+atrib   ::= IDENTIFIER EQUAL expr:e1{:RESULT = new Atribuicao(e1);:}
 		;
 
-fun_stmt        ::= DEF IDENTIFIER LPAREN list_params RPAREN COLON_OP IDENT comando DEDENT
+fun_stmt        ::= DEF IDENTIFIER LPAREN list_params:lp1 RPAREN COLON_OP IDENT Comandos:cmds DEDENT{:RESULT = new Funcao(lp1, new CompoundComando(cmds, null)) ;:}
 					|
-					DEF IDENTIFIER LPAREN RPAREN COLON_OP comando
+					DEF IDENTIFIER LPAREN RPAREN COLON_OP Comandos:cmds{:RESULT = new Funcao(null, new CompoundComando(cmds, null));:}
 					|
 					error {:System.err.println(" Erro na definição da função \n");:}
 					;
 
-list_params ::= IDENTIFIER  list_params_a
+list_params ::= IDENTIFIER  list_params_a:lp01
 				|
 				IDENTIFIER
 				;
-list_params_a ::=  COMMA IDENTIFIER list_params_a				
+list_params_a ::=  COMMA IDENTIFIER list_params_a:lp01				
 				;
 					
 number_aux ::=  INTEGER_LITERAL
 				|
 				NUMBERFLOAT_LITERAL
 				;
-arith_op ::=  arith_op PLUS T
+arith_op ::=  arith_op:aop PLUS T:e
 				|
-			  arith_op MINUS T
+			  arith_op:aop MINUS T:e1
 			  	|
-			  	T
+			  	T:e2
 				;
-T        ::=   T TIMES F
+T        ::=   T:e2 TIMES F:e3
 			   |
-			   T DIVISION F
+			   T:e2 DIVISION F:e3
 			   |
-			   Y
+			   Y:e4
 			   ;
-Y ::= 			number_aux
+Y ::= 			number_aux:naux
 				|
 				IDENTIFIER
 				|
-				bool_posible
+				bool_posible:boolp
 				|
 				STRING
 				;
 	 	 
-logic_op ::=  	 arith_op  precedence_logic arith_op 
+logic_op ::=  	 arith_op:aop  precedence_logic:pl arith_op:aop 
 				;
 bool_posible ::= TRUE
 				|
 				FALSE
 				;
 
-precedence_logic ::= precedence_logic OR O
+precedence_logic ::= precedence_logic:pl OR O:e
 					|
-					precedence_logic AND O
+					precedence_logic:pl AND O:e
 					|
-					O
+					O:e
 					;
-O                ::= O NOT K
+O                ::= O:e NOT K:e1
 					|
-					K
+					K:e1
 					;
-K                ::= K SMALLER arith_op
+K                ::= K:e1 SMALLER arith_op:aop
 					|
-					K LESSEQUAL arith_op
+					K:e1 LESSEQUAL arith_op:aop
 					|
-					K BIGGER arith_op
+					K:e1 BIGGER arith_op:aop
 					|
-					K GREATEREQUAL arith_op
+					K:e1 GREATEREQUAL arith_op:aop
 					|
-					K NOTSAME arith_op
+					K:e1 NOTSAME arith_op:aop
 					|
-					K EQUALTWO arith_op
+					K:e1 EQUALTWO arith_op:aop
 					|
-					arith_op
+					arith_op:aop
 					;
 
 
-bracket_expr ::= L_BRACKET list_argumentos R_BRACKET
+/*bracket_expr ::= L_BRACKET list_argumentos R_BRACKET
 				|
 				par_expr
 				;
@@ -190,45 +190,42 @@ par_expr     ::= LPAREN list_argumentos RPAREN
 				|
 				range_values
 				;
-/*list_argumentos ::= list_argumentos COMMA expr
+list_argumentos ::= list_argumentos COMMA expr
 					|
 					expr
 				    ;*/
 
-for_stmt      ::= FOR IDENTIFIER IN range_stmt COLON_OP IDENT Comandos DEDENT
-				|
-				FOR IDENTIFIER IN bracket_expr COLON_OP IDENT Comandos DEDENT
+for_stmt      ::= FOR IDENTIFIER IN range_stmt:rs COLON_OP IDENT Comandos:cmds DEDENT{:RESULT = new BlocoFor(rs, new CompoundComando(cmds. null));:}
 				;
-range_stmt    ::= RANGE LPAREN range_values RPAREN
+range_stmt    ::= RANGE LPAREN range_values:rv RPAREN{:RESULT = new Range(rv, null, null);:}
 				|
-				RANGE LPAREN range_values COMMA range_values RPAREN
+				RANGE LPAREN range_values:rv COMMA range_values:rv01 RPAREN{:RESULT = new Range(rv,rv01,null);:}
 				|
-				RANGE LPAREN range_values COMMA range_values COMMA range_values RPAREN
+				RANGE LPAREN range_values:rv COMMA range_values:rv01 COMMA range_values:rv02 RPAREN{:RESULT = new Range(rv,rv01,rv02);:}
 				;
 range_values  ::= IDENTIFIER
 				|
-				INTEGER_LITERAL
-				
+				INTEGER_LITERAL				
 				;
-while_expr    ::= WHILE logic_op COLON_OP IDENT Comandos DEDENT
+while_expr    ::= WHILE logic_op:lp COLON_OP IDENT Comandos:cmds DEDENT{:RESULT = new BlocoWhile(lp, new CompoundComando(cmds, null));:}
 				;
-if_expr       ::= IF  logic_op  COLON_OP  IDENT Comandos DEDENT 
+if_expr       ::= IF  logic_op:lp  COLON_OP  IDENT Comandos:cmds DEDENT{:RESULT = new BlocoIf(lp, new Compound(cmds, null));:} 
 				|
-				IF  logic_op  COLON_OP IDENT elif_stmt DEDENT
+				IF  logic_op:lp  COLON_OP IDENT elif_stmt:elifstm DEDENT{:RESULT = new BlocoIf(lp, null);:}
 				|
-				IF  logic_op  COLON_OP IDENT Comandos else_stmt logic_op DEDENT 
+				IF  logic_op:lp  COLON_OP IDENT Comandos:cmds else_stmt:elstmt logic_op:lp DEDENT{:RESULT = new BlocoIf(lp,new CompoundComando(cmds,null),elstmt,lp );:}
 				;
-else_stmt     ::= ELSE  IDENT Comandos DEDENT 
+else_stmt     ::= ELSE  IDENT Comandos:cmds DEDENT {:RESULT = new BlocoElse(new CompoundComando(cmds, null));:}
 				;
-elif_stmt     ::= ELIF  logic_op IDENT Comandos DEDENT
+elif_stmt     ::= ELIF  logic_op:lp IDENT Comandos:cmds DEDENT{:RESULT = new BlocoElif(lp, new CompoundComando(cmds, null));:}
 				;
 
-aux_vetor ::= aux_vetor COMMA INTEGER_LITERAL
+aux_vetor ::= aux_vetor:auv COMMA INTEGER_LITERAL
 			|
-			aux_vetor COMMA STRING
+			aux_vetor:auv COMMA STRING
 			;
 
 vetor ::= IDENTIFIER EQUAL L_BRACKET R_BRACKET
 		|
-		IDENTIFIER EQUAL L_BRACKET aux_vetor R_BRACKET
+		IDENTIFIER EQUAL L_BRACKET aux_vetor:auv R_BRACKET{:RESULT = new Vetor(aux);:}
 		;

@@ -5,7 +5,7 @@
 
 package cup.example;
 
-/** CUP generated class containing symbol constants. */
+/** CUP generated interface containing symbol constants. */
 public interface sym {
   /* terminals */
   public static final int L_KEY = 19;
