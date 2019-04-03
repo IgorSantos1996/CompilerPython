@@ -2,7 +2,7 @@ package sintaxeAbstrata;
 
 import visitor.AbstractVisitor;
 
-public class OperacaoLogica extends Expr{
+public class FuncaoSemParametro extends Comando{
 
 	@Override
 	public Object accept(AbstractVisitor av) {

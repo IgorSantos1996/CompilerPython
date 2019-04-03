@@ -85,9 +85,9 @@ non terminal            Comandos,return_stmt, else_stmt,elif_stmt,vetor,equilibr
          						/*Nossa Gramática para o Python*/    
          						//Expression Statement
 
-start with Comandos;
+start with comando;
 
-Comandos  ::=  atrib:a1{:RESULT = a1;:} 
+comando  ::=  atrib:a1{:RESULT = new Atribuicao(a1);:} 
 		|
 		 while_expr:w1{:RESULT = new BlocoWhile(w1);:}
 		|
@@ -97,17 +97,17 @@ Comandos  ::=  atrib:a1{:RESULT = a1;:}
 		|
 		 vetor:v1{:RESULT = new Vetor(v1);:}
 		;
-Comandos ::= comando:cmd{:new CompoundComando(cmd, null);:}
+Comandos ::= comando:cmd{:new CompoundComando(null, cmd);:}
 		|
 		Comandos:cmds comando:cmd{:new CompoundComando(cmds, cmd);:}
 		;
 expr ::= logic_op:lp{:RESULT = new OperacaoLogica(lp);:}
 		;
-
+		
 /*return_stmt ::= RETURN expr:e1
 		;
 */		
-atrib   ::= IDENTIFIER:e1 EQUAL expr:e2{:RESULT = new Atribuicao(e1,e2);:}
+atrib   ::= IDENTIFIER EQUAL expr:e1{:RESULT = new Atribuicao(e1);:}
 		;
 
 fun_stmt        ::= DEF IDENTIFIER LPAREN list_params:lp1 RPAREN COLON_OP IDENT Comandos:cmds DEDENT{:RESULT = new Funcao(lp1, new CompoundComando(cmds, null)) ;:}
@@ -121,37 +121,35 @@ list_params ::= IDENTIFIER:r  list_params_a:lp01{:RESULT = new ListaParametrosAu
 				|
 				IDENTIFIER:e{:RESULT = new Id(e);:}
 				;
-list_params_a ::=  COMMA IDENTIFIER:r list_params_a:lp01{:RESULT = new ListaParametrosAux(lp01);:}			
+list_params_a ::=  COMMA IDENTIFIER list_params_a:lp01{:RESULT = new ListaParametrosAux(lp01);:}			
 				;
 					
-number_aux ::=  INTEGER_LITERAL:e{:RESULT = new Number_auxiliar(e);:} //separar em int_exp
+number_aux ::=  INTEGER_LITERAL:e{:RESULT = new Number_auxiliar(e);:}
 				|
-				NUMBERFLOAT_LITERAL:e1{:RESULT = new Number_auxiliar(e1);:} // separar em float_exp
+				NUMBERFLOAT_LITERAL:e1{:RESULT = new Number_auxiliar(e1);:}
 				;
-arith_op ::=  arith_op:aop PLUS T:e{:RESULT = new OperacaoLogica(aop, e);:} // operacao aritmetica
+arith_op ::=  arith_op:aop PLUS T:e{:RESULT = new OperacaoLogica(aop, e);:}
 				|
 			  arith_op:aop01 MINUS T:e12{:RESULT = new OperacaoLogica(aop01, e12);:}
 			  	|
-			  	T:e2{:RESULT = e2;:}
+			  	T:e2{:RESULT = new OperacaoLogica(e2, null);:}
 				;
 T        ::=   T:e2 TIMES F:e3{:RESULT = new OperacaoLogica(e2, e3);:}
 			   |
 			   T:e7 DIVISION F:e8{:RESULT = new OperacaoLogica(e7, e8);:}
 			   |
-			   Y:e4{:RESULT = new e4;:}
+			   Y:e4{:RESULT = new OperacaoLogica(e4,null);:}
 			   ;
-Y ::= 			number_aux:naux{:RESULT = naux;:}
+Y ::= 			number_aux:naux{:RESULT = new Number_auxiliar(naux);:}
 				|
 				IDENTIFIER:e{:RESULT = new Id(e);:}
 				|
-				bool_posible:boolp{:RESULT = boolp;:}
+				bool_posible:boolp{:RESULT = new Booleanos(boolp);:}
 				|
 				STRING:e2{:RESULT =new Strings(e2);:}
 				;
 	 	 
-logic_op ::=  	logic_op:e1 OR:e2 precedence_logic:pl{::} 
-				|
-				logic_op:e2 AND:e3 precedence_logic:pl01
+logic_op ::=  	 arith_op:aop  precedence_logic:pl arith_op:aop01{:RESULT = new OperacaoLogica(aop,new PrecedenciaLogica(pl), aop01);:}
 				;
 bool_posible ::= TRUE:e1{:RESULT = new Booleanos(e1);:}
 				|
@@ -162,25 +160,25 @@ precedence_logic ::= precedence_logic:pl OR O:e{:RESULT = new PrecedenciaLogica(
 					|
 					precedence_logic:pl01 AND O:e1e{:RESULT = new PrecedenciaLogica(pl01,e1);:}
 					|
-					O:e{:RESULT = e;:}
+					O:e{:RESULT = new PrecedenciaLogica(e,null);:}
 					;
-O                ::= O:e NOT K:e1{:RESULT = new OperacaoLogica(e,e1);:}
+O                ::= O:e NOT K:e1{:RESULT = new PrecedenciaLogica(e,e1);:}
 					|
-					K:e1{:RESULT = e1;:}
+					K:e1{:RESULT = new PrecedenciaLogica(e1,null);:}
 					;
-K                ::= K:e1 SMALLER arith_op:aop{:RESULT = new OperacaoLogica(e1,aop);:}
+K                ::= K:e1 SMALLER arith_op:aop{:RESULT = new PrecedenciaLogica(e1,aop);:}
 					|
-					K:e2 LESSEQUAL arith_op:aop{:RESULT = new OperacaoLogica(e2,aop);:}
+					K:e2 LESSEQUAL arith_op:aop{:RESULT = new PrecedenciaLogica(e2,aop);:}
 					|
-					K:e3 BIGGER arith_op:aop{:RESULT = new OperacaoLogica(e3,aop);:}
+					K:e3 BIGGER arith_op:aop{:RESULT = new PrecedenciaLogica(e3,aop);:}
 					|
-					K:e4 GREATEREQUAL arith_op:aop{:RESULT = new OperacaoLogica(e4,aop);:} // mudar para operacao logica
+					K:e4 GREATEREQUAL arith_op:aop{:RESULT = new PrecedenciaLogica(e4,aop);:}
 					|
-					K:e5 NOTSAME arith_op:aop{:RESULT = new OperacaoLogica(e5,aop);:}
+					K:e5 NOTSAME arith_op:aop{:RESULT = new PrecedenciaLogica(e5,aop);:}
 					|
-					K:e6 EQUALTWO arith_op:aop{:RESULT = new OperacaoLogica(e6,aop);:}
+					K:e6 EQUALTWO arith_op:aop{:RESULT = new PrecedenciaLogica(e6,aop);:}
 					|
-					arith_op:aop{:RESULT = aop;:}
+					arith_op:aop{:RESULT = new OperacaoAritmetica(aop);:}
 					;
 
 
@@ -197,11 +195,11 @@ list_argumentos ::= list_argumentos COMMA expr
 					expr
 				    ;*/
 
-for_stmt      ::= FOR IDENTIFIER:e5 IN range_stmt:rs COLON_OP IDENT Comandos:cmds DEDENT{:RESULT = new BlocoFor(e5, rs, cmds, null));:}
+for_stmt      ::= FOR IDENTIFIER IN range_stmt:rs COLON_OP IDENT Comandos:cmds DEDENT{:RESULT = new BlocoFor(rs, new CompoundComando(cmds. null));:}
 				;
-range_stmt    ::= RANGE LPAREN range_values:rv RPAREN{:RESULT = new Range(rv);:}
+range_stmt    ::= RANGE LPAREN range_values:rv RPAREN{:RESULT = new Range(rv, null, null);:}
 				|
-				RANGE LPAREN range_values:rv COMMA range_values:rv01 RPAREN{:RESULT = new Range(rv,rv01);:}
+				RANGE LPAREN range_values:rv COMMA range_values:rv01 RPAREN{:RESULT = new Range(rv,rv01,null);:}
 				|
 				RANGE LPAREN range_values:rv COMMA range_values:rv01 COMMA range_values:rv02 RPAREN{:RESULT = new Range(rv,rv01,rv02);:}
 				;
@@ -209,17 +207,17 @@ range_values  ::= IDENTIFIER:e{:RESULT = new Id(e);:}
 				|
 				INTEGER_LITERAL
 				;
-while_expr    ::= WHILE logic_op:lp COLON_OP IDENT Comandos:cmds DEDENT{:RESULT = new BlocoWhile(lp, cmds, null));:}
+while_expr    ::= WHILE logic_op:lp COLON_OP IDENT Comandos:cmds DEDENT{:RESULT = new BlocoWhile(lp, new CompoundComando(cmds, null));:}
 				;
-if_expr       ::= IF  logic_op:lp  COLON_OP  IDENT Comandos:cmds DEDENT{:RESULT = new BlocoIf(lp, cmds, null));:} 
+if_expr       ::= IF  logic_op:lp  COLON_OP  IDENT Comandos:cmds DEDENT{:RESULT = new BlocoIf(lp, new Compound(cmds, null));:} 
 				|
 				IF  logic_op:lp  COLON_OP IDENT elif_stmt:elifstm DEDENT{:RESULT = new BlocoIf(lp, null);:}
 				|
 				IF  logic_op:lp  COLON_OP IDENT Comandos:cmds else_stmt:elstmt logic_op:lp DEDENT{:RESULT = new BlocoIf(lp,new CompoundComando(cmds,null),elstmt,lp );:}
 				;
-else_stmt     ::= ELSE  IDENT Comandos:cmds DEDENT {:RESULT = new BlocoElse(cmds, null));:}
+else_stmt     ::= ELSE  IDENT Comandos:cmds DEDENT {:RESULT = new BlocoElse(new CompoundComando(cmds, null));:}
 				;
-elif_stmt     ::= ELIF  logic_op:lp IDENT Comandos:cmds DEDENT{:RESULT = new BlocoElif(lp, cmds, null));:}
+elif_stmt     ::= ELIF  logic_op:lp IDENT Comandos:cmds DEDENT{:RESULT = new BlocoElif(lp, new CompoundComando(cmds, null));:}
 				;
 
 aux_vetor ::= aux_vetor:auv COMMA INTEGER_LITERAL
