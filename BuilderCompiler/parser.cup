@@ -108,35 +108,38 @@ expr ::= logic_op:lp{:RESULT = new OperacaoLogica(lp);:}
 		;
 */		
 atrib   ::= IDENTIFIER:e1 EQUAL expr:e2{:RESULT = new Atribuicao(e1,e2);:}
-		;
+			|
+			IDENTIFIER:e3 EQUAL vetor:e4{:RESULT = new Atribuicao(e3,e4);:}
+			;
 
-fun_stmt        ::= DEF IDENTIFIER LPAREN list_params:lp1 RPAREN COLON_OP IDENT Comandos:cmds DEDENT{:RESULT = new Funcao(lp1, new CompoundComando(cmds, null)) ;:}
+fun_stmt        ::= DEF IDENTIFIER LPAREN list_params:lp1 RPAREN COLON_OP IDENT Comandos:cmds DEDENT{:RESULT = new Funcao(lp1, cmds) ;:}
 					|
-					DEF IDENTIFIER LPAREN RPAREN COLON_OP Comandos:cmds{:RESULT = new FuncaoSemParametro(new CompoundComando(cmds, null));:}
+					DEF IDENTIFIER LPAREN RPAREN COLON_OP Comandos:cmds{:RESULT = new Funcao(null, cmds);:}
 					|
 					error {:System.err.println(" Erro na definição da função \n");:}
 					;
 
-list_params ::= IDENTIFIER:r  list_params_a:lp01{:RESULT = new ListaParametrosAux(lp01);:}
+list_params ::= IDENTIFIER:r  list_params_a:lp01{:List<IDENTIFIER> list = new ArrayList<>();
+												  list.add(r):}
 				|
 				IDENTIFIER:e{:RESULT = new Id(e);:}
 				;
 list_params_a ::=  COMMA IDENTIFIER:r list_params_a:lp01{:RESULT = new ListaParametrosAux(lp01);:}			
 				;
 					
-number_aux ::=  INTEGER_LITERAL:e{:RESULT = new Number_auxiliar(e);:} //separar em int_exp
+number_aux ::=  INTEGER_LITERAL:e{:RESULT = new IntExp(e);:} //separar em int_exp
 				|
-				NUMBERFLOAT_LITERAL:e1{:RESULT = new Number_auxiliar(e1);:} // separar em float_exp
+				NUMBERFLOAT_LITERAL:e1{:RESULT = new FloatExp(e1);:} // separar em float_exp
 				;
-arith_op ::=  arith_op:aop PLUS T:e{:RESULT = new OperacaoLogica(aop, e);:} // operacao aritmetica
+arith_op ::=  arith_op:aop PLUS T:e{:RESULT = new OperacaoAritmetica(aop, e);:} // operacao aritmetica
 				|
-			  arith_op:aop01 MINUS T:e12{:RESULT = new OperacaoLogica(aop01, e12);:}
+			  arith_op:aop01 MINUS T:e12{:RESULT = new OperacaoAritmetica(aop01, e12);:}
 			  	|
 			  	T:e2{:RESULT = e2;:}
 				;
-T        ::=   T:e2 TIMES F:e3{:RESULT = new OperacaoLogica(e2, e3);:}
+T        ::=   T:e2 TIMES F:e3{:RESULT = new OperacaoAritmetica(e2, e3);:}
 			   |
-			   T:e7 DIVISION F:e8{:RESULT = new OperacaoLogica(e7, e8);:}
+			   T:e7 DIVISION F:e8{:RESULT = new OperacaoAritmetica(e7, e8);:}
 			   |
 			   Y:e4{:RESULT = new e4;:}
 			   ;
@@ -146,10 +149,10 @@ Y ::= 			number_aux:naux{:RESULT = naux;:}
 				|
 				bool_posible:boolp{:RESULT = boolp;:}
 				|
-				STRING:e2{:RESULT =new Strings(e2);:}
+				STRING:e2{:RESULT =new StringExp(e2);:}
 				;
 	 	 
-logic_op ::=  	logic_op:e1 OR:e2 precedence_logic:pl{::} 
+logic_op ::=  	logic_op:e1 OR:e2 precedence_logic:pl
 				|
 				logic_op:e2 AND:e3 precedence_logic:pl01
 				;
@@ -158,27 +161,27 @@ bool_posible ::= TRUE:e1{:RESULT = new Booleanos(e1);:}
 				FALSE:e2{:RESULT = new Booleanos(e2);:}
 				;
 
-precedence_logic ::= precedence_logic:pl OR O:e{:RESULT = new PrecedenciaLogica(pl,e);:}
+precedence_logic ::= precedence_logic:pl OR:r O:e{:RESULT = new PrecedenciaLogica(pl,r,e);:}
 					|
-					precedence_logic:pl01 AND O:e1e{:RESULT = new PrecedenciaLogica(pl01,e1);:}
+					precedence_logic:pl01 AND:t O:e1e{:RESULT = new PrecedenciaLogica(pl01,t,e1);:}
 					|
 					O:e{:RESULT = e;:}
 					;
-O                ::= O:e NOT K:e1{:RESULT = new OperacaoLogica(e,e1);:}
+O                ::= O:e NOT:u K:e1{:RESULT = new OperacaoLogica(e,u,e1);:}
 					|
 					K:e1{:RESULT = e1;:}
 					;
-K                ::= K:e1 SMALLER arith_op:aop{:RESULT = new OperacaoLogica(e1,aop);:}
+K                ::= K:e1 SMALLER:w arith_op:aop{:RESULT = new OperacaoLogica(e1,w,aop);:}
 					|
-					K:e2 LESSEQUAL arith_op:aop{:RESULT = new OperacaoLogica(e2,aop);:}
+					K:e2 LESSEQUAL:d arith_op:aop{:RESULT = new OperacaoLogica(e2,d,aop);:}
 					|
-					K:e3 BIGGER arith_op:aop{:RESULT = new OperacaoLogica(e3,aop);:}
+					K:e3 BIGGER:q arith_op:aop{:RESULT = new OperacaoLogica(e3,q,aop);:}
 					|
-					K:e4 GREATEREQUAL arith_op:aop{:RESULT = new OperacaoLogica(e4,aop);:} // mudar para operacao logica
+					K:e4 GREATEREQUAL:a arith_op:aop{:RESULT = new OperacaoLogica(e4,a,aop);:} // mudar para operacao logica
 					|
-					K:e5 NOTSAME arith_op:aop{:RESULT = new OperacaoLogica(e5,aop);:}
+					K:e5 NOTSAME:m arith_op:aop{:RESULT = new OperacaoLogica(e5,m,aop);:}
 					|
-					K:e6 EQUALTWO arith_op:aop{:RESULT = new OperacaoLogica(e6,aop);:}
+					K:e6 EQUALTWO:z arith_op:aop{:RESULT = new OperacaoLogica(e6,z,aop);:}
 					|
 					arith_op:aop{:RESULT = aop;:}
 					;
@@ -199,23 +202,21 @@ list_argumentos ::= list_argumentos COMMA expr
 
 for_stmt      ::= FOR IDENTIFIER:e5 IN range_stmt:rs COLON_OP IDENT Comandos:cmds DEDENT{:RESULT = new BlocoFor(e5, rs, cmds, null));:}
 				;
-range_stmt    ::= RANGE LPAREN range_values:rv RPAREN{:RESULT = new Range(rv);:}
+range_stmt    ::= RANGE LPAREN range_values:rv RPAREN{:RESULT = new Range(rv,null,null);:}
 				|
-				RANGE LPAREN range_values:rv COMMA range_values:rv01 RPAREN{:RESULT = new Range(rv,rv01);:}
+				RANGE LPAREN range_values:rv COMMA range_values:rv01 RPAREN{:RESULT = new Range(rv,rv01,null);:}
 				|
 				RANGE LPAREN range_values:rv COMMA range_values:rv01 COMMA range_values:rv02 RPAREN{:RESULT = new Range(rv,rv01,rv02);:}
 				;
-range_values  ::= IDENTIFIER:e{:RESULT = new Id(e);:}
-				|
-				INTEGER_LITERAL
+range_values  ::= expr:e1{:RESULT = e1;:}
 				;
-while_expr    ::= WHILE logic_op:lp COLON_OP IDENT Comandos:cmds DEDENT{:RESULT = new BlocoWhile(lp, cmds, null));:}
+while_expr    ::= WHILE logic_op:lp COLON_OP IDENT Comandos:cmds DEDENT{:RESULT = new BlocoWhile(lp, cmds));:}
 				;
-if_expr       ::= IF  logic_op:lp  COLON_OP  IDENT Comandos:cmds DEDENT{:RESULT = new BlocoIf(lp, cmds, null));:} 
+if_expr       ::= IF  logic_op:lp  COLON_OP  IDENT Comandos:cmds DEDENT{:RESULT = new BlocoIf(lp, cmds));:} 
 				|
-				IF  logic_op:lp  COLON_OP IDENT elif_stmt:elifstm DEDENT{:RESULT = new BlocoIf(lp, null);:}
+				IF  logic_op:lp  COLON_OP IDENT Comandos:cmds DEDENT elif_stmt:elifstm{:RESULT = new BlocoIf(lp, null);:}
 				|
-				IF  logic_op:lp  COLON_OP IDENT Comandos:cmds else_stmt:elstmt logic_op:lp DEDENT{:RESULT = new BlocoIf(lp,new CompoundComando(cmds,null),elstmt,lp );:}
+				IF  logic_op:lp  COLON_OP IDENT Comandos:cmds DEDENT else_stmt:elstmt{:RESULT = new BlocoIf(lp,cmds,elstmt,lp );:}
 				;
 else_stmt     ::= ELSE  IDENT Comandos:cmds DEDENT {:RESULT = new BlocoElse(cmds, null));:}
 				;
@@ -225,9 +226,17 @@ elif_stmt     ::= ELIF  logic_op:lp IDENT Comandos:cmds DEDENT{:RESULT = new Blo
 aux_vetor ::= aux_vetor:auv COMMA INTEGER_LITERAL
 			|
 			aux_vetor:auv COMMA STRING
+			|
+			aux_vetor:auv COMMA NUMBERFLOAT_LITERAL
+			|
+			INTEGER_LITERAL
+			|
+			NUMBERFLOAT_LITERAL
+			|
+			STRING
 			;
 
-vetor ::= IDENTIFIER EQUAL L_BRACKET R_BRACKET
+vetor ::=  L_BRACKET R_BRACKET {:RESULT = null;:}
 		|
-		IDENTIFIER EQUAL L_BRACKET aux_vetor:auv R_BRACKET{:RESULT = new Vetor(aux);:}
+		L_BRACKET aux_vetor:auv R_BRACKET{:RESULT = auv;:}
 		;
