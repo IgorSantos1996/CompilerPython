@@ -1,5 +1,7 @@
 package sintaxeAbstrata;
 
-public class ListaParametrosAux {
 
+public class ListaParametrosAux {
+	
+	
 }

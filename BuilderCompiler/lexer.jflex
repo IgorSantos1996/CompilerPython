@@ -1,10 +1,10 @@
 /*[]-----------------------------------------------------------------[]*/
-/*|           					FIRESNAKE	                          |*/
+/*|           					                          |*/
 /*|*******************************************************************|*/
 /*|  Disciplina.......: Linguagens Formais e Tradutores      	      |*/
 /*|  Data........: 18/12/2018								          |*/
-/*|  @Aluno......: Jefferson  Santos  e Igor Terriaga                 |*/
-/*|  Info........: FireSnake é um compilador para o reconhecimento    |*/
+/*|  @Aluno......: Igor Terriaga                 |*/
+/*|  Info........: Compilador para o reconhecimento    |*/
 /*|   			   da linguagem Python. 							  |*/
 /*[]-----------------------------------------------------------------[]*/
 

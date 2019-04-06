@@ -1,15 +1,15 @@
 /*[]-----------------------------------------------------------------[]*/
-/*|           					FIRESNAKE	                          |*/
+/*|           						                          |*/
 /*|*******************************************************************|*/
 /*|  Disciplina.......: Linguagens Formais e Tradutores      	      |*/
 /*|  Data........: 18/12/2018								          |*/
-/*|  @Aluno......: Jefferson  Santos  e Igor Terriaga                 |*/
-/*|  Info........: FireSnake é um compilador para o reconhecimento    |*/
+/*|  @Aluno......: Igor Terriaga                 |*/
+/*|  Info........: Compilador para o reconhecimento    |*/
 /*|   			   da linguagem Python. 							  |*/
 /*[]-----------------------------------------------------------------[]*/
 
 package cup.example;
-
+import java.util.List;
 import java_cup.runtime.*;
 import cup.example.Lexer;
 import java.io.IOException;
@@ -58,22 +58,30 @@ terminal            COLON_OP,COMMA,SCORE,SEMICOLON;
 terminal            FALSE,TRUE,RETURN,DEF,FOR,WHILE,GLOBAL, NOT,ELIF,IF,ELSE, IN, RANGE, IDENT, DEDENT,OR,AND;
 
                     /********** ANOTHER WORDS  *********/
-terminal            INTEGER_LITERAL;  
-terminal            NUMBERFLOAT_LITERAL;
+terminal          Integer  INTEGER_LITERAL;  
+terminal          Float NUMBERFLOAT_LITERAL;
 terminal            IDENTIFIER,RESERVED_WORDS;
 terminal            COMENTARIOS, COMENTARIO;
 
        			/* ********** STRINGS ********* */
 
-terminal            STRING;
+terminal       String     STRING;
      
 					 /********** NO TERMINAIS  *********/
-non terminal            expr_list, number_aux,fim,fun_stmt;
+non terminal            expr_list, number_aux,fim;
 non terminal            expr,exprS,bool_posible,list_params_logicos,comando,expr1,block_stm,stms;      // used to store evaluated subexpressions
-non terminal            atrib,while,if,for,arith_op,logic_op,func_def,list_params,list_params_a;
-non terminal            Y,T,F,O,K,P,operadores_logicos,precedence_logic,list_argumentos,par_expr,def_funcao_stmt,aux_vetor;
-non terminal            Comandos,return_stmt, else_stmt,elif_stmt,vetor,equilibrio_parenteses,while_expr,expr2,if_expr,for_expr,R,for_stmt,range_stmt,range_values,bracket_expr;
-
+non terminal            while,if,for,arith_op,func_def,list_params;
+non terminal            explist, Y,T,F,O,K,P,operadores_logicos,precedence_logic,list_argumentos,par_expr,def_funcao_stmt;
+non terminal            Comandos,return_stmt, else_stmt,elif_stmt,equilibrio_parenteses,expr2,for_expr,R,range_stmt,range_values,bracket_expr;
+non terminal            List<Object> aux_vetor;
+non terminal            List<Object> list_params_a;
+non terminal Comando while_expr;
+non terminal Comando atrib;
+non terminal Comando fun_stmt;
+non terminal Comando if_expr;
+non terminal Comando vetor;
+non terminal Comando for_stmt;        
+non terminal Expr logic_op;
 
 
 					 /********** PRECEDENCES  *********/
@@ -96,6 +104,8 @@ Comandos  ::=  atrib:a1{:RESULT = a1;:}
 		 fun_stmt:f1{:RESULT = new Funcao(f1);:}
 		|
 		 vetor:v1{:RESULT = new Vetor(v1);:}
+		 |
+		 for_stmt:v3{:RESULT = new BlocoFor(v3);:}
 		;
 Comandos ::= comando:cmd{:new CompoundComando(cmd, null);:}
 		|
@@ -106,7 +116,8 @@ expr ::= logic_op:lp{:RESULT = new OperacaoLogica(lp);:}
 
 /*return_stmt ::= RETURN expr:e1
 		;
-*/		
+*/
+	
 atrib   ::= IDENTIFIER:e1 EQUAL expr:e2{:RESULT = new Atribuicao(e1,e2);:}
 			|
 			IDENTIFIER:e3 EQUAL vetor:e4{:RESULT = new Atribuicao(e3,e4);:}
@@ -120,11 +131,14 @@ fun_stmt        ::= DEF IDENTIFIER LPAREN list_params:lp1 RPAREN COLON_OP IDENT 
 					;
 
 list_params ::= IDENTIFIER:r  list_params_a:lp01{:List<IDENTIFIER> list = new ArrayList<>();
-												  list.add(r):}
+											  list.add(r);
+												RESULT = list;:}
 				|
 				IDENTIFIER:e{:RESULT = new Id(e);:}
 				;
-list_params_a ::=  COMMA IDENTIFIER:r list_params_a:lp01{:RESULT = new ListaParametrosAux(lp01);:}			
+list_params_a ::=  COMMA IDENTIFIER:r list_params_a:lp01{:RESULT = new ListaParametrosAux(lp01);:}
+				|
+				IDENTIFIER:e{:RESULT = new Id(e);:}			
 				;
 					
 number_aux ::=  INTEGER_LITERAL:e{:RESULT = new IntExp(e);:} //separar em int_exp
@@ -137,11 +151,11 @@ arith_op ::=  arith_op:aop PLUS T:e{:RESULT = new OperacaoAritmetica(aop, e);:} 
 			  	|
 			  	T:e2{:RESULT = e2;:}
 				;
-T        ::=   T:e2 TIMES F:e3{:RESULT = new OperacaoAritmetica(e2, e3);:}
+T        ::=   T:e2 TIMES Y:e3{:RESULT = new OperacaoAritmetica(e2, e3);:}
 			   |
-			   T:e7 DIVISION F:e8{:RESULT = new OperacaoAritmetica(e7, e8);:}
+			   T:e7 DIVISION Y:e8{:RESULT = new OperacaoAritmetica(e7, e8);:}
 			   |
-			   Y:e4{:RESULT = new e4;:}
+			   Y:e4{:RESULT = e4;:}
 			   ;
 Y ::= 			number_aux:naux{:RESULT = naux;:}
 				|
@@ -152,21 +166,17 @@ Y ::= 			number_aux:naux{:RESULT = naux;:}
 				STRING:e2{:RESULT =new StringExp(e2);:}
 				;
 	 	 
-logic_op ::=  	logic_op:e1 OR:e2 precedence_logic:pl
+logic_op ::=  	logic_op:e1 OR:e2 precedence_logic:pl{:RESULT = new PrecedenciaLogica(e1,e2,pl);:}
 				|
-				logic_op:e2 AND:e3 precedence_logic:pl01
+				logic_op:e2 AND:e3 precedence_logic:pl01{:RESULT = new PrecedenciaLogica(e2,e3,pl01);:}
+				|
+				O:e1{:RESULT = e1;:}
 				;
 bool_posible ::= TRUE:e1{:RESULT = new Booleanos(e1);:}
 				|
 				FALSE:e2{:RESULT = new Booleanos(e2);:}
 				;
 
-precedence_logic ::= precedence_logic:pl OR:r O:e{:RESULT = new PrecedenciaLogica(pl,r,e);:}
-					|
-					precedence_logic:pl01 AND:t O:e1e{:RESULT = new PrecedenciaLogica(pl01,t,e1);:}
-					|
-					O:e{:RESULT = e;:}
-					;
 O                ::= O:e NOT:u K:e1{:RESULT = new OperacaoLogica(e,u,e1);:}
 					|
 					K:e1{:RESULT = e1;:}
@@ -200,7 +210,7 @@ list_argumentos ::= list_argumentos COMMA expr
 					expr
 				    ;*/
 
-for_stmt      ::= FOR IDENTIFIER:e5 IN range_stmt:rs COLON_OP IDENT Comandos:cmds DEDENT{:RESULT = new BlocoFor(e5, rs, cmds, null));:}
+for_stmt      ::= FOR IDENTIFIER:e5 IN range_stmt:rs COLON_OP IDENT Comandos:cmds DEDENT{:RESULT = new BlocoFor(e5, rs, cmds, null);:}
 				;
 range_stmt    ::= RANGE LPAREN range_values:rv RPAREN{:RESULT = new Range(rv,null,null);:}
 				|
@@ -210,30 +220,39 @@ range_stmt    ::= RANGE LPAREN range_values:rv RPAREN{:RESULT = new Range(rv,nul
 				;
 range_values  ::= expr:e1{:RESULT = e1;:}
 				;
-while_expr    ::= WHILE logic_op:lp COLON_OP IDENT Comandos:cmds DEDENT{:RESULT = new BlocoWhile(lp, cmds));:}
+while_expr    ::= WHILE logic_op:lp COLON_OP IDENT Comandos:cmds DEDENT{:RESULT = new BlocoWhile(lp, cmds);:}
 				;
-if_expr       ::= IF  logic_op:lp  COLON_OP  IDENT Comandos:cmds DEDENT{:RESULT = new BlocoIf(lp, cmds));:} 
+if_expr       ::= IF  logic_op:lp  COLON_OP  IDENT Comandos:cmds DEDENT{:RESULT = new BlocoIf(lp, cmds);:} 
 				|
 				IF  logic_op:lp  COLON_OP IDENT Comandos:cmds DEDENT elif_stmt:elifstm{:RESULT = new BlocoIf(lp, null);:}
 				|
 				IF  logic_op:lp  COLON_OP IDENT Comandos:cmds DEDENT else_stmt:elstmt{:RESULT = new BlocoIf(lp,cmds,elstmt,lp );:}
 				;
-else_stmt     ::= ELSE  IDENT Comandos:cmds DEDENT {:RESULT = new BlocoElse(cmds, null));:}
+else_stmt     ::= ELSE  IDENT Comandos:cmds DEDENT {:RESULT = new BlocoElse(cmds, null);:}
 				;
-elif_stmt     ::= ELIF  logic_op:lp IDENT Comandos:cmds DEDENT{:RESULT = new BlocoElif(lp, cmds, null));:}
+elif_stmt     ::= ELIF  logic_op:lp IDENT Comandos:cmds DEDENT{:RESULT = new BlocoElif(lp, cmds, null);:}
 				;
 
-aux_vetor ::= aux_vetor:auv COMMA INTEGER_LITERAL
+aux_vetor ::= aux_vetor:auv COMMA INTEGER_LITERAL:e1{:auv.add(e1);
+													RESULT = auv;:}
 			|
-			aux_vetor:auv COMMA STRING
+			aux_vetor:auv COMMA STRING:e2{:auv.add(e2);
+													RESULT = auv;;:}
 			|
-			aux_vetor:auv COMMA NUMBERFLOAT_LITERAL
+			aux_vetor:auv COMMA NUMBERFLOAT_LITERAL:e3{:auv.add(e3);
+													RESULT = auv;;:}
 			|
-			INTEGER_LITERAL
+			INTEGER_LITERAL:e1{:List<Object>list = new ArrayList<>();
+								list.add(e1);
+								RESULT = list;:}
 			|
-			NUMBERFLOAT_LITERAL
+			NUMBERFLOAT_LITERAL:e1{:List<Object>list = new ArrayList<>();
+								list.add(e1);
+								RESULT = list;:}
 			|
-			STRING
+			STRING:e1{:List<Object>list = new ArrayList<>();
+								list.add(e1);
+								RESULT = list;:}
 			;
 
 vetor ::=  L_BRACKET R_BRACKET {:RESULT = null;:}

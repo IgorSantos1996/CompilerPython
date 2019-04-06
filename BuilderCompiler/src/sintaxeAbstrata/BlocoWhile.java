@@ -29,7 +29,7 @@ public class BlocoWhile extends Comando {
 
 	@Override
 	public Object accept(AbstractVisitor av) {
-		// TODO Auto-generated method stub
+		av.visit(this);
 		return null;
 	}
 

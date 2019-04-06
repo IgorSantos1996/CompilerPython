@@ -1,0 +1,231 @@
+/*[]-----------------------------------------------------------------[]*/
+/*|           					FIRESNAKE	                          |*/
+/*|*******************************************************************|*/
+/*|  Disciplina.......: Linguagens Formais e Tradutores      	      |*/
+/*|  Data........: 18/12/2018								          |*/
+/*|  @Aluno......: Jefferson  Santos  e Igor Terriaga                 |*/
+/*|  Info........: FireSnake é um compilador para o reconhecimento    |*/
+/*|   			   da linguagem Python. 							  |*/
+/*[]-----------------------------------------------------------------[]*/
+
+package cup.example;
+
+import java_cup.runtime.*;
+import cup.example.Lexer;
+import java.io.IOException;
+import java.io.File;
+import java.io.FileInputStream;
+
+parser code {:
+  protected Lexer lexer;
+	private Symbol s;
+	public void sintax_error(Symbol s){
+		this.s  = s;	
+	}
+	public Symbol getS (){
+		return this.s;
+	}
+
+
+:}
+
+/* define how to connect to the scanner! */
+init with {:
+  ComplexSymbolFactory f = new ComplexSymbolFactory();
+  symbolFactory = f;
+  File file = new File("input.txt");
+  FileInputStream fis = null;
+  try {
+    fis = new FileInputStream(file);
+  } catch (IOException e) {
+    e.printStackTrace();
+  } 
+  lexer = new Lexer(f,fis);
+:};
+scan with {: return lexer.next_token(); :};
+
+                    /********** TERMINALS OPERATORS AND DELIMITERS *********/
+terminal            SEMI, PLUS, MINUS, UMINUS, TIMES,DIVISION, EQUAL;
+
+terminal 			EQUALTWO,NOTSAME,BIGGER,SMALLER,GREATEREQUAL,LESSEQUAL;
+
+terminal			LPAREN,RPAREN,L_BRACKET,R_BRACKET,L_KEY,R_KEY;
+
+terminal            COLON_OP,COMMA,SCORE,SEMICOLON;
+
+
+                    /********** RESERVED WORDS  *********/
+terminal            FALSE,TRUE,RETURN,DEF,FOR,WHILE,GLOBAL, NOT,ELIF,IF,ELSE, IN, RANGE, IDENT, DEDENT,OR,AND;
+
+                    /********** ANOTHER WORDS  *********/
+terminal            INTEGER_LITERAL;  
+terminal            NUMBERFLOAT_LITERAL;
+terminal            IDENTIFIER,RESERVED_WORDS;
+terminal            COMENTARIOS, COMENTARIO;
+
+       			/* ********** STRINGS ********* */
+
+terminal            STRING;
+     
+					 /********** NO TERMINAIS  *********/
+non terminal            expr_list, number_aux,fim,fun_stmt;
+non terminal            expr,exprS,bool_posible,list_params_logicos,comando,expr1,block_stm,stms;      // used to store evaluated subexpressions
+non terminal            atrib,while,if,for,arith_op,logic_op,func_def,list_params,list_params_a;
+non terminal            Y,T,F,O,K,P,operadores_logicos,precedence_logic,list_argumentos,par_expr,def_funcao_stmt,aux_vetor;
+non terminal            Comandos,return_stmt, else_stmt,elif_stmt,vetor,equilibrio_parenteses,while_expr,expr2,if_expr,for_expr,R,for_stmt,range_stmt,range_values,bracket_expr;
+
+
+
+					 /********** PRECEDENCES  *********/
+//precedence left PLUS, MINUS;
+//precedence left TIMES, DIVISION;
+
+					 /********** GENERATION GRAMMAR MODEL  *********/     
+             
+         						/*Nossa Gramática para o Python*/    
+         						//Expression Statement
+
+start with comando;
+
+comando  ::=  atrib:a1{:RESULT = new Atribuicao(a1);:} 
+		|
+		 while_expr:w1{:RESULT = new BlocoWhile(w1);:}
+		|
+		 if_expr:i1{:RESULT = new BlocoIf(i1);:}
+		|
+		 fun_stmt:f1{:RESULT = new Funcao(f1);:}
+		|
+		 vetor:v1{:RESULT = new Vetor(v1);:}
+		;
+Comandos ::= comando:cmd{:new CompoundComando(null, cmd);:}
+		|
+		Comandos:cmds comando:cmd{:new CompoundComando(cmds, cmd);:}
+		;
+expr ::= logic_op:lp{:RESULT = new OperacaoLogica(lp);:}
+		;
+		
+/*return_stmt ::= RETURN expr:e1
+		;
+*/		
+atrib   ::= IDENTIFIER EQUAL expr:e1{:RESULT = new Atribuicao(e1);:}
+		;
+
+fun_stmt        ::= DEF IDENTIFIER LPAREN list_params:lp1 RPAREN COLON_OP IDENT Comandos:cmds DEDENT{:RESULT = new Funcao(lp1, new CompoundComando(cmds, null)) ;:}
+					|
+					DEF IDENTIFIER LPAREN RPAREN COLON_OP Comandos:cmds{:RESULT = new FuncaoSemParametro(new CompoundComando(cmds, null));:}
+					|
+					error {:System.err.println(" Erro na definição da função \n");:}
+					;
+
+list_params ::= IDENTIFIER:r  list_params_a:lp01{:RESULT = new ListaParametrosAux(lp01);:}
+				|
+				IDENTIFIER:e{:RESULT = new Id(e);:}
+				;
+list_params_a ::=  COMMA IDENTIFIER list_params_a:lp01{:RESULT = new ListaParametrosAux(lp01);:}			
+				;
+					
+number_aux ::=  INTEGER_LITERAL:e{:RESULT = new Number_auxiliar(e);:}
+				|
+				NUMBERFLOAT_LITERAL:e1{:RESULT = new Number_auxiliar(e1);:}
+				;
+arith_op ::=  arith_op:aop PLUS T:e{:RESULT = new OperacaoLogica(aop, e);:}
+				|
+			  arith_op:aop01 MINUS T:e12{:RESULT = new OperacaoLogica(aop01, e12);:}
+			  	|
+			  	T:e2{:RESULT = new OperacaoLogica(e2, null);:}
+				;
+T        ::=   T:e2 TIMES F:e3{:RESULT = new OperacaoLogica(e2, e3);:}
+			   |
+			   T:e7 DIVISION F:e8{:RESULT = new OperacaoLogica(e7, e8);:}
+			   |
+			   Y:e4{:RESULT = new OperacaoLogica(e4,null);:}
+			   ;
+Y ::= 			number_aux:naux{:RESULT = new Number_auxiliar(naux);:}
+				|
+				IDENTIFIER:e{:RESULT = new Id(e);:}
+				|
+				bool_posible:boolp{:RESULT = new Booleanos(boolp);:}
+				|
+				STRING:e2{:RESULT =new Strings(e2);:}
+				;
+	 	 
+logic_op ::=  	 arith_op:aop  precedence_logic:pl arith_op:aop01{:RESULT = new OperacaoLogica(aop,new PrecedenciaLogica(pl), aop01);:}
+				;
+bool_posible ::= TRUE:e1{:RESULT = new Booleanos(e1);:}
+				|
+				FALSE:e2{:RESULT = new Booleanos(e2);:}
+				;
+
+precedence_logic ::= precedence_logic:pl OR O:e{:RESULT = new PrecedenciaLogica(pl,e);:}
+					|
+					precedence_logic:pl01 AND O:e1e{:RESULT = new PrecedenciaLogica(pl01,e1);:}
+					|
+					O:e{:RESULT = new PrecedenciaLogica(e,null);:}
+					;
+O                ::= O:e NOT K:e1{:RESULT = new PrecedenciaLogica(e,e1);:}
+					|
+					K:e1{:RESULT = new PrecedenciaLogica(e1,null);:}
+					;
+K                ::= K:e1 SMALLER arith_op:aop{:RESULT = new PrecedenciaLogica(e1,aop);:}
+					|
+					K:e2 LESSEQUAL arith_op:aop{:RESULT = new PrecedenciaLogica(e2,aop);:}
+					|
+					K:e3 BIGGER arith_op:aop{:RESULT = new PrecedenciaLogica(e3,aop);:}
+					|
+					K:e4 GREATEREQUAL arith_op:aop{:RESULT = new PrecedenciaLogica(e4,aop);:}
+					|
+					K:e5 NOTSAME arith_op:aop{:RESULT = new PrecedenciaLogica(e5,aop);:}
+					|
+					K:e6 EQUALTWO arith_op:aop{:RESULT = new PrecedenciaLogica(e6,aop);:}
+					|
+					arith_op:aop{:RESULT = new OperacaoAritmetica(aop);:}
+					;
+
+
+/*bracket_expr ::= L_BRACKET list_argumentos R_BRACKET
+				|
+				par_expr
+				;
+par_expr     ::= LPAREN list_argumentos RPAREN
+				|
+				range_values
+				;
+list_argumentos ::= list_argumentos COMMA expr
+					|
+					expr
+				    ;*/
+
+for_stmt      ::= FOR IDENTIFIER IN range_stmt:rs COLON_OP IDENT Comandos:cmds DEDENT{:RESULT = new BlocoFor(rs, new CompoundComando(cmds. null));:}
+				;
+range_stmt    ::= RANGE LPAREN range_values:rv RPAREN{:RESULT = new Range(rv, null, null);:}
+				|
+				RANGE LPAREN range_values:rv COMMA range_values:rv01 RPAREN{:RESULT = new Range(rv,rv01,null);:}
+				|
+				RANGE LPAREN range_values:rv COMMA range_values:rv01 COMMA range_values:rv02 RPAREN{:RESULT = new Range(rv,rv01,rv02);:}
+				;
+range_values  ::= IDENTIFIER:e{:RESULT = new Id(e);:}
+				|
+				INTEGER_LITERAL
+				;
+while_expr    ::= WHILE logic_op:lp COLON_OP IDENT Comandos:cmds DEDENT{:RESULT = new BlocoWhile(lp, new CompoundComando(cmds, null));:}
+				;
+if_expr       ::= IF  logic_op:lp  COLON_OP  IDENT Comandos:cmds DEDENT{:RESULT = new BlocoIf(lp, new Compound(cmds, null));:} 
+				|
+				IF  logic_op:lp  COLON_OP IDENT elif_stmt:elifstm DEDENT{:RESULT = new BlocoIf(lp, null);:}
+				|
+				IF  logic_op:lp  COLON_OP IDENT Comandos:cmds else_stmt:elstmt logic_op:lp DEDENT{:RESULT = new BlocoIf(lp,new CompoundComando(cmds,null),elstmt,lp );:}
+				;
+else_stmt     ::= ELSE  IDENT Comandos:cmds DEDENT {:RESULT = new BlocoElse(new CompoundComando(cmds, null));:}
+				;
+elif_stmt     ::= ELIF  logic_op:lp IDENT Comandos:cmds DEDENT{:RESULT = new BlocoElif(lp, new CompoundComando(cmds, null));:}
+				;
+
+aux_vetor ::= aux_vetor:auv COMMA INTEGER_LITERAL
+			|
+			aux_vetor:auv COMMA STRING
+			;
+
+vetor ::= IDENTIFIER EQUAL L_BRACKET R_BRACKET
+		|
+		IDENTIFIER EQUAL L_BRACKET aux_vetor:auv R_BRACKET{:RESULT = new Vetor(aux);:}
+		;
