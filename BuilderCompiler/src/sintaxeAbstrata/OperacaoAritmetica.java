@@ -2,7 +2,7 @@ package sintaxeAbstrata;
 
 import visitor.AbstractVisitor;
 
-public class OperacaoAritmetica extends Expr {
+public class OperacaoAritmetica {
 	private OperacaoAritmetica oa;
 	private T t;
 	
@@ -30,10 +30,5 @@ public class OperacaoAritmetica extends Expr {
 		this.t = t;
 	}
 
-	@Override
-	public Object accept(AbstractVisitor av) {
-		av.visit(this);
-		return null;
-	}
-
+	
 }
